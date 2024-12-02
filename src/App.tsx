@@ -1,5 +1,10 @@
-import React from "react";
+import { Routes } from "react-router-dom";
+import { AppRouter, ROUTES_LINK } from "./routes";
 
 export const App = () => {
-  return <div>App</div>;
+  return (
+    <Routes>
+      {AppRouter(ROUTES_LINK.map((route) => ({ ...route, children: [] })))}
+    </Routes>
+  );
 };
