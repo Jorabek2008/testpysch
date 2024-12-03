@@ -10,7 +10,7 @@ export default {
   theme: {
     extend: {
       backgroundImage: {
-        bg_img: "url(./public/loginbg.jpg)",
+        bg_img: "url(/public/loginbg.jpg)",
       },
       screens: {
         "300px": "300px",
