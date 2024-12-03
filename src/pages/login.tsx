@@ -7,11 +7,11 @@ export const Login = () => {
 
   const toggleVisibility = () => setIsVisible(!isVisible);
   return (
-    <div>
+    <div className="">
       <div className="bg-bg_img w-full h-screen bg-no-repeat bg-center bg-cover relative">
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
 
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute top-1/2 left-1/2 transform overflow-hidden -translate-x-1/2 -translate-y-1/2">
           <Card className="py-4 mx-auto">
             <CardHeader className="pb-0 py-2 text-center px-4">
               <h4 className="font-bold text-xl mx-auto">Psixologiya testi</h4>
@@ -21,7 +21,7 @@ export const Login = () => {
                 label={"Ismingiz"}
                 size="sm"
                 variant="bordered"
-                className="w-[300px]"
+                className="400px:w-[300px] min-w-[200px]"
                 isRequired
               />
               <Input
