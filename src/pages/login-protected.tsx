@@ -1,6 +1,5 @@
 import React, { ReactNode, useMemo } from "react";
 import { Navigate } from "react-router-dom";
-import PropTypes from "prop-types";
 import toast from "react-hot-toast";
 
 interface Proto {
@@ -16,12 +15,8 @@ export const LoginProtectedAuth: React.FC<Proto> = ({ children }) => {
     return children;
   }
   const navigate = () => {
-    toast.success("Siz login qilgansiz")
+    toast.success("Siz login qilgansiz");
     return <Navigate to="/home" />;
   };
   return navigate();
-};
-
-LoginProtectedAuth.propTypes = {
-  children: PropTypes.node.isRequired,
 };
