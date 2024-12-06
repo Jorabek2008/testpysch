@@ -1,10 +1,30 @@
-import { Routes } from "react-router-dom";
-import { AppRouter, ROUTES_LINK } from "./routes";
+import { Route, Routes } from "react-router-dom";
+import { Home, HomeProtectedAuth, Login, LoginProtectedAuth } from "./pages";
+import { Toaster } from "react-hot-toast";
 
 export const App = () => {
   return (
-    <Routes>
-      {AppRouter(ROUTES_LINK.map((route) => ({ ...route, children: [] })))}
-    </Routes>
+    <div>
+      <Toaster />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <LoginProtectedAuth>
+              <Login />
+            </LoginProtectedAuth>
+          }
+        />
+        <Route
+          path="/home"
+          element={
+            <HomeProtectedAuth>
+              <Home />
+            </HomeProtectedAuth>
+          }
+        />
+        {/* <Route path="*" element={<Navigate to={token ? "/home" : "/"} />} /> */}
+      </Routes>
+    </div>
   );
 };

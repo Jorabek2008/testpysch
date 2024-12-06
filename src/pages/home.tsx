@@ -4,9 +4,34 @@ import { FaUserCircle } from "react-icons/fa";
 import { Card, CardBody, Image } from "@nextui-org/react";
 import { CountdownTimer, QuestionNumber, Quiz } from "../components";
 import { MockdataTest } from "../mock";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
+import { useEffect, useState } from "react";
+import { api } from "../api";
+
+interface ProfileData {
+  data: {
+    full_name: string;
+    image: string;
+    // add other expected properties
+  };
+}
 
 export const Home = () => {
+  const [data, setData] = useState<ProfileData | null>(null);
+  const getProfile = async () => {
+    try {
+      const response = await api.get("/client/profile");
+
+      setData(response.data);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Xatolik yuz berdi");
+    }
+  };
+  useEffect(() => {
+    getProfile();
+  }, []);
+
+  console.log(data?.data);
   return (
     <div>
       <Toaster />
@@ -30,13 +55,16 @@ export const Home = () => {
 
         {/* foydalanuvchi ma'lumoti va rasmi */}
         <div className="flex justify-center 600px:justify-normal flex-wrap items-center gap-4">
-          <FaUserCircle size={40} />
-          <Image
-            src="https://cdn.upl.uz/posts/2024-11/7b916acbb1_czska-dinamo-1.jpg"
-            className="rounded-full w-[40px] h-[40px] object-cover"
-          />
+          {data?.data.image ? (
+            <Image
+              src={data.data.image}
+              className="rounded-full w-[40px] h-[40px] object-cover"
+            />
+          ) : (
+            <FaUserCircle size={40} />
+          )}
           <h1 className="flex flex-wrap items-center gap-2 font-semibold">
-            Abbosbek Fayzullayev
+            {data?.data?.full_name}
           </h1>
         </div>
       </div>
@@ -45,12 +73,21 @@ export const Home = () => {
       <div className="flex h-screen">
         <div className="w-[300px] bg-blue-500">
           <div className="flex justify-center mt-3">
-            <Image
-              src="https://cdn.upl.uz/posts/2024-11/7b916acbb1_czska-dinamo-1.jpg"
-              isZoomed
-              className="w-[200px] h-[200px]"
-              radius="full"
-            />
+            {data?.data.image ? (
+              <Image
+                src={data.data.image}
+                isZoomed
+                className="w-[200px] h-[200px]"
+                radius="full"
+              />
+            ) : (
+              <Image
+                src="/public/user.png"
+                isZoomed
+                className="w-[200px] h-[200px]"
+                radius="full"
+              />
+            )}
           </div>
 
           {/* sekundnomer */}
