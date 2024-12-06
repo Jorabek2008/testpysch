@@ -1,7 +1,3 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }],
-  "build": {
-    "commands": "npm run build",
-    "outputDirectory": "dist"
-  }
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }
