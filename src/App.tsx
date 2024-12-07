@@ -1,5 +1,12 @@
 import { Route, Routes } from "react-router-dom";
-import { Home, HomeProtectedAuth, Login, LoginProtectedAuth } from "./pages";
+import {
+  Home,
+  HomeProtected,
+  Login,
+  LoginProtected,
+  SuperAdminPage,
+  SuperAdminProtected,
+} from "./pages";
 import { Toaster } from "react-hot-toast";
 
 export const App = () => {
@@ -10,17 +17,25 @@ export const App = () => {
         <Route
           path="/"
           element={
-            <LoginProtectedAuth>
+            <LoginProtected>
               <Login />
-            </LoginProtectedAuth>
+            </LoginProtected>
           }
         />
         <Route
           path="/home"
           element={
-            <HomeProtectedAuth>
+            <HomeProtected>
               <Home />
-            </HomeProtectedAuth>
+            </HomeProtected>
+          }
+        />
+        <Route
+          path="/super-admin"
+          element={
+            <SuperAdminProtected>
+              <SuperAdminPage />
+            </SuperAdminProtected>
           }
         />
         {/* <Route path="*" element={<Navigate to={token ? "/home" : "/"} />} /> */}

@@ -24,45 +24,41 @@ export const Quiz: React.FC<{ data: Question[] }> = ({ data }) => {
   const handleNext = () => {
     if (currentQuestionIndex < data.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null); // Javobni tozalash
+      setSelectedAnswer(null);
     } else {
       toast.success("Rahmat");
     }
   };
 
-  const handleAnswerChange = (answer: string) => {
-    setSelectedAnswer(answer);
+  const handleAnswerChange = (value: string) => {
+    setSelectedAnswer(value);
   };
 
   return (
     <div className="mx-5">
       <h1 className="text-large font-bold">Savol {currentQuestion.number}</h1>
       <p className="font-semibold">{currentQuestion.questionTitle}</p>
-      <form className="w-full">
+
+      <RadioGroup
+        className="mt-4"
+        value={selectedAnswer || ""}
+        onValueChange={handleAnswerChange}
+      >
         {currentQuestion.questions.map((option, index) => (
-          <RadioGroup key={index}>
-            <Radio
-              className="mt-1"
-              value={option}
-              onClick={() => handleAnswerChange(option)}
-            >
-              {option}
-            </Radio>
-          </RadioGroup>
+          <Radio key={index} value={option} className="mt-2">
+            {option}
+          </Radio>
         ))}
-      </form>
+      </RadioGroup>
+
       <button
         onClick={handleNext}
         disabled={!selectedAnswer}
-        style={{
-          marginTop: "20px",
-          padding: "10px 20px",
-          background: selectedAnswer ? "#0070f3" : "#eaeaea",
-          color: selectedAnswer ? "#fff" : "#000",
-          border: "none",
-          borderRadius: "5px",
-          cursor: selectedAnswer ? "pointer" : "not-allowed",
-        }}
+        className={`mt-5 px-5 py-2 rounded-md transition-colors ${
+          selectedAnswer
+            ? "bg-blue-600 text-white cursor-pointer hover:bg-blue-700"
+            : "bg-gray-200 text-gray-700 cursor-not-allowed"
+        }`}
       >
         {currentQuestionIndex < data.length - 1 ? "Keyingi" : "Tugatish"}
       </button>

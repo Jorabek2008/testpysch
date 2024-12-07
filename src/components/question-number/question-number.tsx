@@ -20,29 +20,35 @@ export const QuestionNumber: React.FC<ProtoQuestionProps> = ({ question }) => {
   };
 
   return (
-    <div>
-      <Pagination
-        total={question}
-        page={activePage}
-        onChange={handlePageChange}
-        renderItem={(props: PaginationItemRenderProps) => (
-          <button
-            key={props.value}
-            disabled={props.value !== activePage}
-            style={{
-              padding: "10px 20px",
-              margin: "5px",
-              cursor: props.value === activePage ? "default" : "pointer",
-              background: props.value === activePage ? "#0070f3" : "#eaeaea",
-              color: props.value === activePage ? "#fff" : "#000",
-              border: "none",
-              borderRadius: "5px",
-            }}
-          >
-            {props.value == "dots" ? "..." : props.value}
-          </button>
-        )}
-      />
+    <div className="w-full overflow-x-auto overflow-y-hidden">
+      <div className="flex flex-wrap justify-center gap-2 p-2 min-w-[300px]">
+        <Pagination
+          total={question}
+          page={activePage}
+          onChange={handlePageChange}
+          className="flex flex-wrap justify-center"
+          renderItem={(props: PaginationItemRenderProps) => (
+            <button
+              key={props.value}
+              disabled={props.value !== activePage}
+              className={`
+                px-2 sm:px-4 py-2 m-1
+                rounded-md text-sm sm:text-base
+                transition-colors duration-200
+                ${
+                  props.value === activePage
+                    ? "bg-blue-500 text-white cursor-default"
+                    : "bg-gray-100 hover:bg-gray-200 cursor-pointer"
+                }
+                disabled:opacity-50
+                focus:outline-none focus:ring-2 focus:ring-blue-500
+              `}
+            >
+              {props.value === "dots" ? "..." : props.value}
+            </button>
+          )}
+        />
+      </div>
     </div>
   );
 };

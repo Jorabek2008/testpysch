@@ -25,7 +25,7 @@ export const Login = () => {
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     try {
-      const response = await api.post("/auth/login", {
+      const response = await api.post("/student/auth/login", {
         login: data.login,
         password: data.password,
       });
