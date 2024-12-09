@@ -302,7 +302,7 @@ export const SuperAdminPage = () => {
                         />
                       )}
                     />
-                    {q.options.map((option, aIndex) => (
+                    {q.options.map((_, aIndex) => (
                       <div key={aIndex} className="flex gap-2">
                         <Controller
                           name={`questions.${qIndex}.options.${aIndex}.variant`}
@@ -416,21 +416,25 @@ export const SuperAdminPage = () => {
                 <div className="flex justify-center items-center h-64">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
                 </div>
+              ) : filteredData.data?.length === 0 ? (
+                <div className="text-center text-gray-500 mt-8">
+                  Hozircha natijalar mavjud emas
+                </div>
               ) : (
                 <>
                   {/* Studentlar ro'yxati */}
-                  <div>
+                  <div className="space-y-6">
                     {filteredData.data?.map((group) => (
                       <div key={group._id}>
                         <h3 className="font-bold text-xl mb-4">
                           {group._id} Guruhi
                         </h3>
-                        <div className="flex justify-between w-full gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {group.answers.map((student) => (
                             <div
                               key={student._id}
                               onClick={() => setSelectedStudent(student)}
-                              className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow mb-4"
+                              className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow"
                             >
                               <div className="flex items-center space-x-4">
                                 <img
