@@ -204,21 +204,6 @@ export const SuperAdminPage = () => {
     null,
   );
 
-  const getAllAdminTest = async () => {
-    try {
-      const response = await api.get("/admin/answer");
-      console.log("API Response:", response.data);
-      setFilteredData(response.data);
-    } catch (error) {
-      console.error("API Error:", error);
-      const errorMessage =
-        (error as AxiosError<{ message: string }>)?.response?.data?.message ||
-        "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.";
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
   return (
     <div>
       <div className="w-full h-12 flex justify-end items-center">
