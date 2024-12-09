@@ -12,7 +12,7 @@ interface LoginFormData {
   password: string;
 }
 
-export const Login = () => {
+export const LoginAdmin = () => {
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -25,19 +25,20 @@ export const Login = () => {
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     try {
-      const response = await api.post("/student/auth/login", {
+      const response = await api.post("/admin/auth/login", {
         login: data.login,
         password: data.password,
       });
+      console.log(response);
       setLoading(false);
       toast.success("Login muvaffaqiyatli!");
       const token = response.data.token;
 
       // Tokenni localStorage ga saqlash
+      localStorage.setItem("isAdmin", "ADMIN");
       localStorage.setItem("token", token);
-      localStorage.setItem("isAdmin", "USER");
 
-      navigate("/home");
+      navigate("/super-admin");
       return response.data;
     } catch (error: unknown) {
       setLoading(false);
@@ -60,7 +61,9 @@ export const Login = () => {
         <div className="absolute top-1/2 left-1/2 transform overflow-hidden -translate-x-1/2 -translate-y-1/2">
           <Card className="py-4 mx-auto">
             <CardHeader className="pb-0 py-2 text-center px-4">
-              <h4 className="font-bold text-xl mx-auto">Psixologiya testi</h4>
+              <h4 className="font-bold text-xl mx-auto">
+                Psixologiya testi Admin sahifasi
+              </h4>
             </CardHeader>
             <CardBody className="overflow-visible py-2">
               <form onSubmit={handleSubmit(onSubmit)}>
@@ -70,16 +73,12 @@ export const Login = () => {
                   control={control}
                   rules={{
                     required: "Loginni kiriting!",
-                    pattern: {
-                      value: /^\d+$/,
-                      message: "Faqat raqam kiriting",
-                    },
                   }}
                   render={({ field }) => (
                     <Input
                       {...field}
                       label={"Login"}
-                      type="number"
+                      type="text"
                       size="sm"
                       variant="bordered"
                       isInvalid={Boolean(errors.login?.message)}
@@ -134,8 +133,8 @@ export const Login = () => {
                 >
                   Kirish
                 </Button>
-                <Link to={"/admin-login"} className="text-blue-600">
-                  Admin
+                <Link to={"/"} className="text-blue-600">
+                  Login
                 </Link>
               </form>
             </CardBody>

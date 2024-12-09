@@ -1,7 +1,6 @@
 import React, { ReactNode, useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ROLE } from "../mock";
 
 interface Proto {
   children: ReactNode;
@@ -9,6 +8,7 @@ interface Proto {
 
 export const HomeProtected: React.FC<Proto> = ({ children }) => {
   const user = localStorage.getItem("token");
+  const role = localStorage.getItem("isAdmin");
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 
   if (!isAuthenticated) {
@@ -16,11 +16,11 @@ export const HomeProtected: React.FC<Proto> = ({ children }) => {
     return <Navigate to="/" />;
   }
 
-  if (ROLE === "USER" || ROLE !== "ADMIN") {
+  if (role === "USER") {
     return children;
   }
 
-  if (ROLE === "ADMIN") {
+  if (role === "ADMIN") {
     return <Navigate to={"/super-admin"} />;
   }
 };

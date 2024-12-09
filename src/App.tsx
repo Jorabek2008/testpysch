@@ -3,6 +3,7 @@ import {
   Home,
   HomeProtected,
   Login,
+  LoginAdmin,
   LoginProtected,
   SuperAdminPage,
   SuperAdminProtected,
@@ -38,6 +39,7 @@ export const App = () => {
             </SuperAdminProtected>
           }
         />
+        <Route path="/admin-login" element={<LoginAdmin />} />
         {/* <Route path="*" element={<Navigate to={token ? "/home" : "/"} />} /> */}
       </Routes>
     </div>
