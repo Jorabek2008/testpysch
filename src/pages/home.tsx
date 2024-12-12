@@ -240,7 +240,7 @@ export const Home = () => {
                       <div
                         key={test._id}
                         className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer ${
-                          activeTest && activeTest._id === test._id
+                          activeTest?.["_id"] === test._id
                             ? "border-blue-500 bg-blue-50"
                             : ""
                         }`}

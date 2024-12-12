@@ -1,4 +1,4 @@
-import { Button, Input } from "@nextui-org/react";
+import { Button, Image, Input } from "@nextui-org/react";
 import { SiVitest } from "react-icons/si";
 import { PiStudent } from "react-icons/pi";
 import { MdDeleteOutline, MdQueuePlayNext } from "react-icons/md";
@@ -50,6 +50,7 @@ interface Student {
   level: {
     name: string;
   };
+  address: "";
 }
 
 interface User {
@@ -202,6 +203,7 @@ export const SuperAdminPage = () => {
   const [selectedStudent, setSelectedStudent] = useState<StudentTest | null>(
     null,
   );
+  const [testName, setTestName] = useState<string | null>(null);
 
   const [tests, setTests] = useState<Test[]>([]);
   const [currentTest, setCurrentTest] = useState<Test | null>(null);
@@ -287,15 +289,40 @@ export const SuperAdminPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   // Function to handle student card click
-  const handleStudentClick = (student: StudentTest) => {
+
+  const handleLogout = async () => {
+    localStorage.clear();
+    await toast.success("Muvaffaqiyatli chiqildi!");
+    window.location.href = "/";
+  };
+
+  const handleStudentClick = async (student: StudentTest) => {
     setSelectedStudent(student);
+
+    // Fetch the test name using the testId
+    try {
+      const response = await api.get(`/admin/test/${student.testId}`);
+      const fetchedTestName = response.data.data.title; // Assuming the response structure
+      setTestName(fetchedTestName); // Set the test name in state
+    } catch (error) {
+      console.error("Error fetching test name:", error);
+      toast.error("Test nomini olishda xatolik yuz berdi");
+    }
   };
 
   return (
     <div>
-      <div className="w-full h-12 flex justify-end items-center">
+      <div className={`w-full h-12 flex justify-end items-center`}>
         <h1 className="mr-5 font-semibold text-large">Admin</h1>
+        <Button
+          size="sm"
+          onClick={handleLogout}
+          className="bg-red-500 text-white"
+        >
+          Chiqish
+        </Button>
       </div>
+
       {/* home main section */}
       <div className="flex">
         <div className="w-[300px] bg-blue-500">
@@ -643,7 +670,7 @@ export const SuperAdminPage = () => {
               ) : (
                 <>
                   {/* Studentlar ro'yxati */}
-                  <div className="space-y-6">
+                  <div className="space-y-6 h-auto">
                     {filteredData.data?.map((group) => (
                       <div key={group._id}>
                         <h3 className="font-bold text-xl mb-4">
@@ -669,6 +696,7 @@ export const SuperAdminPage = () => {
                                   <p className="text-sm text-gray-600">
                                     {student.user.student.group.name} guruh
                                   </p>
+
                                   <p className="text-xs text-gray-500">
                                     Test topshirilgan vaqt:{" "}
                                     {new Date(
@@ -686,11 +714,11 @@ export const SuperAdminPage = () => {
 
                   {/* Student ma'lumotlari modali */}
                   {selectedStudent && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                      <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+                    <div className="fixed inset-0 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                      <div className="bg-white h-auto rounded-lg max-w-[90%] md:max-w-2xl w-full p-6 overflow-y-auto max-h-[80vh]">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex items-center space-x-4">
-                            <img
+                            <Image
                               src={selectedStudent.user.student.image}
                               alt={selectedStudent.user.student.full_name}
                               className="w-20 h-20 rounded-full object-cover"
@@ -705,11 +733,17 @@ export const SuperAdminPage = () => {
                               <p className="text-gray-600">
                                 {selectedStudent.user.student.group.name} guruh,{" "}
                                 {selectedStudent.user.student.level.name}
+                                <p className="text-sm text-gray-600">
+                                  {selectedStudent.user.student.address}
+                                </p>
                               </p>
                             </div>
                           </div>
                           <button
-                            onClick={() => setSelectedStudent(null)}
+                            onClick={() => {
+                              setSelectedStudent(null);
+                              setTestName(null);
+                            }}
                             className="text-gray-500 hover:text-gray-700"
                           >
                             <svg
@@ -729,8 +763,10 @@ export const SuperAdminPage = () => {
                         </div>
 
                         <div className="mt-6">
-                          <h4 className="font-semibold mb-2">Test nomi:</h4>
-                          <div className="space-y-2">
+                          <h4 className="font-semibold mb-2">
+                            Test nomi: {testName}
+                          </h4>
+                          <div className="space-y-2 min-h-[500px] border p-2 rounded overflow-y-hidden">
                             {selectedStudent.answers.map((answer, index) => (
                               <div
                                 key={index}
