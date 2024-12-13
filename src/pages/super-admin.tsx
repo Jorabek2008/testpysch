@@ -1,8 +1,8 @@
 import { Button, Image, Input } from "@nextui-org/react";
 import { SiVitest } from "react-icons/si";
 import { PiStudent } from "react-icons/pi";
-import { MdDeleteOutline, MdQueuePlayNext } from "react-icons/md";
-import { useEffect, useState } from "react";
+import { MdDeleteOutline, MdQueuePlayNext, MdMenu } from "react-icons/md";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../api";
 import toast from "react-hot-toast";
 import { Controller, useForm } from "react-hook-form";
@@ -18,9 +18,6 @@ interface Question {
   questionText: string;
   options: Option[];
 }
-interface Question1 {
-  questionText: string;
-}
 
 interface CreateTest {
   title: string;
@@ -29,7 +26,6 @@ interface CreateTest {
   questions: Question[];
 }
 
-// Yangi interfacelar
 interface Answer {
   questionNumber: number;
   selectedVariant: string;
@@ -50,7 +46,7 @@ interface Student {
   level: {
     name: string;
   };
-  address: "";
+  address: string;
 }
 
 interface User {
@@ -73,6 +69,7 @@ interface StudentTest {
 
 interface GroupData {
   _id: string;
+  name: string;
   answers: StudentTest[];
   count: number;
 }
@@ -86,14 +83,12 @@ interface FilteredDataType {
   data: GroupData[];
 }
 
-// Filtered data interfeysi
-
 interface Test {
   _id: string;
   title: string;
   description?: string;
   time?: number;
-  questions: Question1[];
+  questions: Question[];
 }
 
 export const SuperAdminPage = () => {
@@ -103,10 +98,8 @@ export const SuperAdminPage = () => {
     reset,
     formState: { errors },
   } = useForm<CreateTest>();
-  const buttonClass = `!py-[12px] rounded-[8px] justify-start overflow-x-hidden relative`;
   const rows = [
     { title: "Testlar", icon: <SiVitest />, nextPage: "tests" },
-
     { title: "Talabalar", icon: <PiStudent />, nextPage: "students" },
     { title: "Natijalar", icon: <MdQueuePlayNext />, nextPage: "results" },
   ];
@@ -178,7 +171,7 @@ export const SuperAdminPage = () => {
     data: [],
   });
 
-  const answerGet = async () => {
+  const answerGet = useCallback(async () => {
     if (active !== "results") return;
 
     setLoading(true);
@@ -193,13 +186,12 @@ export const SuperAdminPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [active]);
 
   useEffect(() => {
     answerGet();
-  }, [active]);
+  }, [answerGet]);
 
-  // Tanlangan student uchun state
   const [selectedStudent, setSelectedStudent] = useState<StudentTest | null>(
     null,
   );
@@ -224,7 +216,6 @@ export const SuperAdminPage = () => {
     }
   }, [active]);
 
-  // Test tahrirlash funksiyasi
   const handleEditTest = async (test: Test) => {
     try {
       const response = await api.get(`/admin/test/${test._id}`);
@@ -266,29 +257,25 @@ export const SuperAdminPage = () => {
         })),
       });
       toast.success("Test muvaffaqiyatli tahrirlandi!");
-      getTests(); // Refresh the list
+      getTests();
     } catch (error) {
       console.error("Edit Error:", error);
       toast.error("Testni tahrirlashda xatolik yuz berdi");
     }
   };
 
-  // Test o'chirish funksiyasi
   const handleDeleteTest = async (testId: string) => {
     try {
       await api.delete(`/admin/test/${testId}`);
       toast.success("Test muvaffaqiyatli o'chirildi");
-      getTests(); // Ro'yxatni yangilash
+      getTests();
     } catch (error) {
       console.error("Delete Error:", error);
       toast.error("Testni o'chirishda xatolik yuz berdi");
     }
   };
 
-  // Yangi test yaratish formini ko'rsatish uchun state
   const [showCreateForm, setShowCreateForm] = useState(false);
-
-  // Function to handle student card click
 
   const handleLogout = async () => {
     localStorage.clear();
@@ -298,22 +285,27 @@ export const SuperAdminPage = () => {
 
   const handleStudentClick = async (student: StudentTest) => {
     setSelectedStudent(student);
-
-    // Fetch the test name using the testId
     try {
       const response = await api.get(`/admin/test/${student.testId}`);
-      const fetchedTestName = response.data.data.title; // Assuming the response structure
-      setTestName(fetchedTestName); // Set the test name in state
+      setTestName(response.data.data.title);
     } catch (error) {
-      console.error("Error fetching test name:", error);
-      toast.error("Test nomini olishda xatolik yuz berdi");
+      const errorMessage =
+        (error as AxiosError<{ message: string }>)?.response?.data?.message ||
+        "Test nomini olishda xatolik yuz berdi";
+      toast.error(errorMessage);
     }
   };
 
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarExpanded((prev) => !prev);
+  };
+
   return (
-    <div>
-      <div className={`w-full h-12 flex justify-end items-center`}>
-        <h1 className="mr-5 font-semibold text-large">Admin</h1>
+    <div className="min-h-screen flex flex-col">
+      <div className="w-full h-12 flex justify-end items-center bg-white shadow-md">
+        <h1 className="mr-5 font-semibold text-lg">Admin</h1>
         <Button
           size="sm"
           onClick={handleLogout}
@@ -323,35 +315,47 @@ export const SuperAdminPage = () => {
         </Button>
       </div>
 
-      {/* home main section */}
-      <div className="flex">
-        <div className="w-[300px] bg-blue-500">
-          <div className="mt-3 p-6 flex flex-col gap-4">
+      <div className="flex flex-1">
+        <aside
+          className={`${
+            isSidebarExpanded ? "w-full md:w-[300px]" : "w-16"
+          } bg-blue-500 p-4 transition-all duration-300`}
+        >
+          <div className="flex flex-col gap-4">
+            <Button
+              onClick={toggleSidebar}
+              type="button"
+              color="primary"
+              className="mb-4"
+              isIconOnly={!isSidebarExpanded}
+            >
+              <MdMenu size={24} />
+            </Button>
+
             {rows.map((item, index) => (
               <Button
-                onClick={() => setActive(item.nextPage)}
+                onClick={() => {
+                  setActive(item.nextPage);
+                  setIsSidebarExpanded(false); // Collapse sidebar on item click
+                }}
                 key={index}
                 type="button"
                 color="primary"
-                className={
-                  buttonClass +
-                  `${item.nextPage === active ? " border-b-2 border-orange-600" : ""}`
-                }
-                startContent={<button>{item.icon}</button>}
-                fullWidth={true}
-                size="lg"
+                className={`${item.nextPage === active ? " border-b-1 border-orange-600" : ""} ${isSidebarExpanded ? "justify-start" : "justify-center"}`}
+                // size="lg"
                 variant="faded"
-                radius="none"
+                isIconOnly={!isSidebarExpanded}
               >
-                {item.title}
+                {item.icon}
+                {isSidebarExpanded && item.title}
               </Button>
             ))}
           </div>
-        </div>
+        </aside>
 
-        <div className="w-full relative min-h-screen h-auto bg-blue-200 p-2 pb-10">
+        <main className="flex-1 p-4 bg-blue-200 overflow-y-auto">
           {active === "tests" && (
-            <div className="p-4">
+            <div>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Mavjud Testlar</h2>
                 <Button
@@ -381,7 +385,6 @@ export const SuperAdminPage = () => {
                 </Button>
               </div>
 
-              {/* Testlar ro'yxati */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {tests.map((test) => (
                   <div
@@ -446,7 +449,7 @@ export const SuperAdminPage = () => {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 0 002-2M9 5a2 2 0 012-2h2a2 0 012 2"
                           />
                         </svg>
                         <span>{test.questions.length} ta savol</span>
@@ -456,13 +459,13 @@ export const SuperAdminPage = () => {
                 ))}
               </div>
 
-              {/* Test yaratish formasi */}
               {(showCreateForm || currentTest) && (
                 <form
                   onSubmit={handleSubmit(currentTest ? onSubmitEdit : onSubmit)}
+                  className="mt-6"
                 >
-                  <div className="relative">
-                    <div className="flex items-center justify-between">
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex flex-col md:flex-row items-center justify-between mb-4">
                       <Controller
                         name="title"
                         control={control}
@@ -475,7 +478,7 @@ export const SuperAdminPage = () => {
                             label={"Testning nomini kiriting!"}
                             size="sm"
                             isInvalid={Boolean(errors.title?.message)}
-                            className="m-2 max-w-[48%]"
+                            className="m-2 w-full md:max-w-[48%]"
                             isRequired
                             errorMessage={errors.title?.message as string}
                           />
@@ -493,7 +496,7 @@ export const SuperAdminPage = () => {
                             label={"Testning vaqtini kiriting!"}
                             size="sm"
                             isInvalid={Boolean(errors.time?.message)}
-                            className="m-2 max-w-[48%]"
+                            className="m-2 w-full md:max-w-[48%]"
                             isRequired
                             errorMessage={errors.time?.message as string}
                           />
@@ -519,7 +522,7 @@ export const SuperAdminPage = () => {
                       )}
                     />
                     {questions.map((q, qIndex) => (
-                      <div key={qIndex}>
+                      <div key={qIndex} className="mb-4">
                         <Controller
                           name={`questions.${qIndex}.questionText`}
                           control={control}
@@ -535,7 +538,7 @@ export const SuperAdminPage = () => {
                                 errors.questions?.[qIndex]?.questionText
                                   ?.message,
                               )}
-                              className="m-2 w-auto"
+                              className="m-2 w-full"
                               isRequired
                               errorMessage={
                                 errors.questions?.[qIndex]?.questionText
@@ -606,7 +609,7 @@ export const SuperAdminPage = () => {
                             newQuestions[qIndex].options.push({
                               variant: String.fromCharCode(
                                 65 + newQuestions[qIndex].options.length,
-                              ), // Adds next letter (A, B, C...)
+                              ),
                               javob: "",
                             });
                             setQuestions(newQuestions);
@@ -616,10 +619,10 @@ export const SuperAdminPage = () => {
                         </Button>
                       </div>
                     ))}
-                    <div className="relative flex items-center justify-between gap-10">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                       <Button
                         onClick={addQuestion}
-                        className="mt-6 w-[20%]"
+                        className="mt-6 w-full md:w-[20%]"
                         color="primary"
                       >
                         Savol qo'shish
@@ -644,7 +647,6 @@ export const SuperAdminPage = () => {
           {active === "students" && (
             <div>
               <div className="p-4">
-                {/* Tugmalar */}
                 <div className="flex space-x-4 mb-4">
                   <Button color="primary">Gurpalar</Button>
                   <Button color="success" className="text-white">
@@ -669,12 +671,13 @@ export const SuperAdminPage = () => {
                 </div>
               ) : (
                 <>
-                  {/* Studentlar ro'yxati */}
                   <div className="space-y-6 h-auto">
                     {filteredData.data?.map((group) => (
-                      <div key={group._id}>
+                      <div key={group._id || "no-group"}>
                         <h3 className="font-bold text-xl mb-4">
-                          {group._id} Guruhi
+                          {group._id
+                            ? `${group._id} Guruhi`
+                            : "Guruh mavjud emas"}
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {group.answers.map((student: StudentTest) => (
@@ -684,8 +687,12 @@ export const SuperAdminPage = () => {
                               onClick={() => handleStudentClick(student)}
                             >
                               <div className="flex items-center space-x-4">
-                                <img
-                                  src={student.user.student.image}
+                                <Image
+                                  src={
+                                    student.user.student.image
+                                      ? student.user.student.image
+                                      : "/public/user.png"
+                                  }
                                   alt={student.user.student.full_name}
                                   className="w-16 h-16 rounded-full object-cover"
                                 />
@@ -696,7 +703,6 @@ export const SuperAdminPage = () => {
                                   <p className="text-sm text-gray-600">
                                     {student.user.student.group.name} guruh
                                   </p>
-
                                   <p className="text-xs text-gray-500">
                                     Test topshirilgan vaqt:{" "}
                                     {new Date(
@@ -712,14 +718,17 @@ export const SuperAdminPage = () => {
                     ))}
                   </div>
 
-                  {/* Student ma'lumotlari modali */}
                   {selectedStudent && (
                     <div className="fixed inset-0 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                       <div className="bg-white h-auto rounded-lg max-w-[90%] md:max-w-2xl w-full p-6 overflow-y-auto max-h-[80vh]">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex items-center space-x-4">
                             <Image
-                              src={selectedStudent.user.student.image}
+                              src={
+                                selectedStudent.user.student.image
+                                  ? selectedStudent.user.student.image
+                                  : "/public/user.png"
+                              }
                               alt={selectedStudent.user.student.full_name}
                               className="w-20 h-20 rounded-full object-cover"
                             />
@@ -797,7 +806,7 @@ export const SuperAdminPage = () => {
               )}
             </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
