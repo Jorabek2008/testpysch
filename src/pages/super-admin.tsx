@@ -1,6 +1,12 @@
-import { Button, Image, Input } from "@nextui-org/react";
+import {
+  Button,
+  Image,
+  Input,
+  Modal,
+  ModalContent,
+  useDisclosure,
+} from "@nextui-org/react";
 import { SiVitest } from "react-icons/si";
-import { PiStudent } from "react-icons/pi";
 import { MdDeleteOutline, MdQueuePlayNext, MdMenu } from "react-icons/md";
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api";
@@ -96,11 +102,11 @@ export const SuperAdminPage = () => {
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CreateTest>();
   const rows = [
     { title: "Testlar", icon: <SiVitest />, nextPage: "tests" },
-    { title: "Talabalar", icon: <PiStudent />, nextPage: "students" },
     { title: "Natijalar", icon: <MdQueuePlayNext />, nextPage: "results" },
   ];
   const [active, setActive] = useState<string>("tests");
@@ -108,16 +114,8 @@ export const SuperAdminPage = () => {
     { questionText: "", options: [{ variant: "A", javob: "" }] },
   ]);
 
-  const addQuestion = () => {
-    setQuestions([
-      ...questions,
-      {
-        questionText: "",
-        options: [{ variant: "A", javob: "" }],
-      },
-    ]);
-  };
-
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const onSubmit = async (data: CreateTest) => {
     setLoading(true);
@@ -137,6 +135,8 @@ export const SuperAdminPage = () => {
 
       setLoading(false);
       toast.success("Test muvaffaqiyatli yaratildi!");
+      getTests();
+      onClose();
 
       reset({
         title: "",
@@ -195,7 +195,7 @@ export const SuperAdminPage = () => {
   const [selectedStudent, setSelectedStudent] = useState<StudentTest | null>(
     null,
   );
-  const [testName, setTestName] = useState<string | null>(null);
+  const [testDetails, setTestDetails] = useState<Test | null>(null);
 
   const [tests, setTests] = useState<Test[]>([]);
   const [currentTest, setCurrentTest] = useState<Test | null>(null);
@@ -216,6 +216,7 @@ export const SuperAdminPage = () => {
     }
   }, [active]);
 
+  const [loadingEdit, setLoadingEdit] = useState<boolean>(false);
   const handleEditTest = async (test: Test) => {
     try {
       const response = await api.get(`/admin/test/${test._id}`);
@@ -234,6 +235,7 @@ export const SuperAdminPage = () => {
           })),
         })),
       });
+      setQuestions(fullTest.questions);
     } catch (error) {
       console.error("Error fetching test details:", error);
       toast.error("Test tafsilotlarini yuklashda xatolik yuz berdi");
@@ -242,7 +244,7 @@ export const SuperAdminPage = () => {
 
   const onSubmitEdit = async (data: CreateTest) => {
     if (!currentTest) return;
-
+    setLoadingEdit(true);
     try {
       await api.put(`/admin/test/${currentTest._id}`, {
         title: data.title,
@@ -257,10 +259,13 @@ export const SuperAdminPage = () => {
         })),
       });
       toast.success("Test muvaffaqiyatli tahrirlandi!");
+      closeEditModal();
       getTests();
     } catch (error) {
       console.error("Edit Error:", error);
       toast.error("Testni tahrirlashda xatolik yuz berdi");
+    } finally {
+      setLoadingEdit(false);
     }
   };
 
@@ -275,8 +280,6 @@ export const SuperAdminPage = () => {
     }
   };
 
-  const [showCreateForm, setShowCreateForm] = useState(false);
-
   const handleLogout = async () => {
     localStorage.clear();
     await toast.success("Muvaffaqiyatli chiqildi!");
@@ -287,7 +290,7 @@ export const SuperAdminPage = () => {
     setSelectedStudent(student);
     try {
       const response = await api.get(`/admin/test/${student.testId}`);
-      setTestName(response.data.data.title);
+      setTestDetails(response.data.data);
     } catch (error) {
       const errorMessage =
         (error as AxiosError<{ message: string }>)?.response?.data?.message ||
@@ -300,6 +303,30 @@ export const SuperAdminPage = () => {
 
   const toggleSidebar = () => {
     setIsSidebarExpanded((prev) => !prev);
+  };
+
+  const openEditModal = () => setIsEditModalOpen(true);
+  const closeEditModal = () => setIsEditModalOpen(false);
+
+  const removeQuestion = (qIndex: number) => {
+    setQuestions((prevQuestions) => {
+      const updatedQuestions = prevQuestions.filter(
+        (_, index) => index !== qIndex,
+      );
+      setValue("questions", updatedQuestions);
+      return updatedQuestions;
+    });
+  };
+
+  const removeOption = (qIndex: number, oIndex: number) => {
+    setQuestions((prevQuestions) => {
+      const newQuestions = [...prevQuestions];
+      newQuestions[qIndex].options = newQuestions[qIndex].options.filter(
+        (_, index) => index !== oIndex,
+      );
+      setValue("questions", newQuestions);
+      return newQuestions;
+    });
   };
 
   return (
@@ -359,9 +386,9 @@ export const SuperAdminPage = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Mavjud Testlar</h2>
                 <Button
+                  onPress={() => onOpen()}
                   color="primary"
                   onClick={() => {
-                    setShowCreateForm(true);
                     reset({
                       title: "",
                       description: "",
@@ -400,7 +427,10 @@ export const SuperAdminPage = () => {
                           isIconOnly
                           color="warning"
                           size="sm"
-                          onClick={() => handleEditTest(test)}
+                          onClick={() => {
+                            handleEditTest(test);
+                            openEditModal();
+                          }}
                         >
                           <CiEdit size={20} />
                         </Button>
@@ -459,201 +489,438 @@ export const SuperAdminPage = () => {
                 ))}
               </div>
 
-              {(showCreateForm || currentTest) && (
-                <form
-                  onSubmit={handleSubmit(currentTest ? onSubmitEdit : onSubmit)}
-                  className="mt-6"
-                >
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex flex-col md:flex-row items-center justify-between mb-4">
-                      <Controller
-                        name="title"
-                        control={control}
-                        rules={{
-                          required: "Testning nomini kiriting!",
-                        }}
-                        render={({ field }) => (
-                          <Input
-                            {...field}
-                            label={"Testning nomini kiriting!"}
-                            size="sm"
-                            isInvalid={Boolean(errors.title?.message)}
-                            className="m-2 w-full md:max-w-[48%]"
-                            isRequired
-                            errorMessage={errors.title?.message as string}
-                          />
-                        )}
-                      />
-                      <Controller
-                        name="time"
-                        control={control}
-                        rules={{
-                          required: "Testning vaqtini kiriting!",
-                        }}
-                        render={({ field }) => (
-                          <Input
-                            {...field}
-                            label={"Testning vaqtini kiriting!"}
-                            size="sm"
-                            isInvalid={Boolean(errors.time?.message)}
-                            className="m-2 w-full md:max-w-[48%]"
-                            isRequired
-                            errorMessage={errors.time?.message as string}
-                          />
-                        )}
-                      />
-                    </div>
-                    <Controller
-                      name="description"
-                      control={control}
-                      rules={{
-                        required: "Testning tavsifini kiriting!",
-                      }}
-                      render={({ field }) => (
-                        <Input
-                          {...field}
-                          label={"Testning tavsifini kiriting!"}
-                          size="sm"
-                          isInvalid={Boolean(errors.description?.message)}
-                          className="m-2 w-full"
-                          isRequired
-                          errorMessage={errors.description?.message as string}
-                        />
-                      )}
-                    />
-                    {questions.map((q, qIndex) => (
-                      <div key={qIndex} className="mb-4">
-                        <Controller
-                          name={`questions.${qIndex}.questionText`}
-                          control={control}
-                          rules={{
-                            required: "Savolni kiriting!",
-                          }}
-                          render={({ field }) => (
-                            <Input
-                              {...field}
-                              label={`Savol ${qIndex + 1}`}
-                              size="sm"
-                              isInvalid={Boolean(
-                                errors.questions?.[qIndex]?.questionText
-                                  ?.message,
-                              )}
-                              className="m-2 w-full"
-                              isRequired
-                              errorMessage={
-                                errors.questions?.[qIndex]?.questionText
-                                  ?.message as string
-                              }
-                            />
-                          )}
-                        />
-                        {q.options.map((_, aIndex) => (
-                          <div key={aIndex} className="flex gap-2">
+              <Modal
+                isOpen={isOpen}
+                size={"5xl"}
+                onClose={onClose}
+                scrollBehavior="inside"
+              >
+                <ModalContent>
+                  {() => (
+                    <>
+                      <form onSubmit={handleSubmit(onSubmit)} className="mt-6">
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                          <div className="flex flex-col md:flex-row items-center justify-between mb-4">
                             <Controller
-                              name={`questions.${qIndex}.options.${aIndex}.variant`}
+                              name="title"
                               control={control}
                               rules={{
-                                required: "Variant harfini kiriting!",
+                                required: "Testning nomini kiriting!",
                               }}
                               render={({ field }) => (
                                 <Input
                                   {...field}
-                                  label={`Variant`}
+                                  label={"Testning nomini kiriting!"}
                                   size="sm"
-                                  className="m-2 w-[100px]"
-                                  isInvalid={Boolean(
-                                    errors.questions?.[qIndex]?.options?.[
-                                      aIndex
-                                    ]?.variant?.message,
-                                  )}
+                                  isInvalid={Boolean(errors.title?.message)}
+                                  className="m-2 w-full md:max-w-[48%]"
                                   isRequired
-                                  errorMessage={
-                                    errors.questions?.[qIndex]?.options?.[
-                                      aIndex
-                                    ]?.variant?.message as string
-                                  }
+                                  errorMessage={errors.title?.message as string}
                                 />
                               )}
                             />
                             <Controller
-                              name={`questions.${qIndex}.options.${aIndex}.javob`}
+                              name="time"
                               control={control}
                               rules={{
-                                required: "Javobni kiriting!",
+                                required: "Testning vaqtini kiriting!",
                               }}
                               render={({ field }) => (
                                 <Input
                                   {...field}
-                                  label={`Javob ${aIndex + 1}`}
+                                  label={"Testning vaqtini kiriting!"}
                                   size="sm"
-                                  className="m-2 flex-1"
-                                  isInvalid={Boolean(
-                                    errors.questions?.[qIndex]?.options?.[
-                                      aIndex
-                                    ]?.javob?.message,
-                                  )}
+                                  isInvalid={Boolean(errors.time?.message)}
+                                  className="m-2 w-full md:max-w-[48%]"
                                   isRequired
-                                  errorMessage={
-                                    errors.questions?.[qIndex]?.options?.[
-                                      aIndex
-                                    ]?.javob?.message as string
-                                  }
+                                  errorMessage={errors.time?.message as string}
                                 />
                               )}
                             />
                           </div>
-                        ))}
-                        <Button
-                          onClick={() => {
-                            const newQuestions = [...questions];
-                            newQuestions[qIndex].options.push({
-                              variant: String.fromCharCode(
-                                65 + newQuestions[qIndex].options.length,
-                              ),
-                              javob: "",
-                            });
-                            setQuestions(newQuestions);
-                          }}
-                        >
-                          Javob qo'shish
-                        </Button>
-                      </div>
-                    ))}
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                      <Button
-                        onClick={addQuestion}
-                        className="mt-6 w-full md:w-[20%]"
-                        color="primary"
-                      >
-                        Savol qo'shish
-                      </Button>
-                      <Button
-                        isLoading={loading}
-                        type="submit"
-                        className="mt-6 w-full"
-                        color="success"
-                      >
-                        {currentTest
-                          ? "Tahrirlashni Saqlash"
-                          : "Savollarni Yuborish"}
-                      </Button>
-                    </div>
-                  </div>
-                </form>
-              )}
-            </div>
-          )}
+                          <Controller
+                            name="description"
+                            control={control}
+                            rules={{
+                              required: "Testning tavsifini kiriting!",
+                            }}
+                            render={({ field }) => (
+                              <Input
+                                {...field}
+                                label={"Testning tavsifini kiriting!"}
+                                size="sm"
+                                isInvalid={Boolean(errors.description?.message)}
+                                className="m-2 w-full"
+                                isRequired
+                                errorMessage={
+                                  errors.description?.message as string
+                                }
+                              />
+                            )}
+                          />
+                          {questions.map((q, qIndex) => (
+                            <div key={qIndex} className="mb-4">
+                              <div className="flex items-center justify-between">
+                                <Controller
+                                  name={`questions.${qIndex}.questionText`}
+                                  control={control}
+                                  rules={{
+                                    required: "Savolni kiriting!",
+                                  }}
+                                  render={({ field }) => (
+                                    <Input
+                                      {...field}
+                                      label={`Savol ${qIndex + 1}`}
+                                      size="sm"
+                                      isInvalid={Boolean(
+                                        errors.questions?.[qIndex]?.questionText
+                                          ?.message,
+                                      )}
+                                      className="m-2 w-full"
+                                      isRequired
+                                      errorMessage={
+                                        errors.questions?.[qIndex]?.questionText
+                                          ?.message as string
+                                      }
+                                    />
+                                  )}
+                                />
+                                <Button
+                                  color="danger"
+                                  onClick={() => removeQuestion(qIndex)}
+                                  className="ml-2"
+                                >
+                                  Savolni O'chirish
+                                </Button>
+                              </div>
+                              {q.options.map((_, aIndex) => (
+                                <div
+                                  key={aIndex}
+                                  className="flex gap-2 items-center"
+                                >
+                                  <Controller
+                                    name={`questions.${qIndex}.options.${aIndex}.variant`}
+                                    control={control}
+                                    rules={{
+                                      required: "Variant harfini kiriting!",
+                                    }}
+                                    render={({ field }) => (
+                                      <Input
+                                        {...field}
+                                        label={`Variant`}
+                                        size="sm"
+                                        className="m-2 w-[100px]"
+                                        isInvalid={Boolean(
+                                          errors.questions?.[qIndex]?.options?.[
+                                            aIndex
+                                          ]?.variant?.message,
+                                        )}
+                                        isRequired
+                                        errorMessage={
+                                          errors.questions?.[qIndex]?.options?.[
+                                            aIndex
+                                          ]?.variant?.message as string
+                                        }
+                                      />
+                                    )}
+                                  />
+                                  <Controller
+                                    name={`questions.${qIndex}.options.${aIndex}.javob`}
+                                    control={control}
+                                    rules={{
+                                      required: "Javobni kiriting!",
+                                    }}
+                                    render={({ field }) => (
+                                      <Input
+                                        {...field}
+                                        label={`Javob ${aIndex + 1}`}
+                                        size="sm"
+                                        className="m-2 flex-1"
+                                        isInvalid={Boolean(
+                                          errors.questions?.[qIndex]?.options?.[
+                                            aIndex
+                                          ]?.javob?.message,
+                                        )}
+                                        isRequired
+                                        errorMessage={
+                                          errors.questions?.[qIndex]?.options?.[
+                                            aIndex
+                                          ]?.javob?.message as string
+                                        }
+                                      />
+                                    )}
+                                  />
+                                  <Button
+                                    color="danger"
+                                    onClick={() => removeOption(qIndex, aIndex)}
+                                    className="ml-2"
+                                  >
+                                    Javobni O'chirish
+                                  </Button>
+                                </div>
+                              ))}
+                              <Button
+                                onClick={() => {
+                                  const newQuestions = [...questions];
+                                  newQuestions[qIndex].options.push({
+                                    variant: "",
+                                    javob: "",
+                                  });
+                                  setQuestions(newQuestions);
+                                }}
+                              >
+                                Javob qo'shish
+                              </Button>
+                            </div>
+                          ))}
+                          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <Button
+                              onClick={() => {
+                                const newQuestions = [...questions];
+                                newQuestions.push({
+                                  questionText: "",
+                                  options: [{ variant: "", javob: "" }],
+                                });
+                                setQuestions(newQuestions);
+                              }}
+                              className="mt-6 w-full md:w-[20%]"
+                              color="primary"
+                            >
+                              Savol qo'shish
+                            </Button>
+                            <Button
+                              isLoading={loading}
+                              type="submit"
+                              className="mt-6 w-full"
+                              color="success"
+                            >
+                              Savollarni Yuborish
+                            </Button>
+                          </div>
+                        </div>
+                      </form>
+                    </>
+                  )}
+                </ModalContent>
+              </Modal>
 
-          {active === "students" && (
-            <div>
-              <div className="p-4">
-                <div className="flex space-x-4 mb-4">
-                  <Button color="primary">Gurpalar</Button>
-                  <Button color="success" className="text-white">
-                    Studentlar
-                  </Button>
-                </div>
-              </div>
+              <Modal
+                isOpen={isEditModalOpen}
+                size={"5xl"}
+                onClose={closeEditModal}
+                scrollBehavior="inside"
+              >
+                <ModalContent>
+                  {() => (
+                    <>
+                      <form
+                        onSubmit={handleSubmit(onSubmitEdit)}
+                        className="mt-6"
+                      >
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                          <div className="flex flex-col md:flex-row items-center justify-between mb-4">
+                            <Controller
+                              name="title"
+                              control={control}
+                              rules={{
+                                required: "Testning nomini kiriting!",
+                              }}
+                              render={({ field }) => (
+                                <Input
+                                  {...field}
+                                  label={"Testning nomini kiriting!"}
+                                  size="sm"
+                                  isInvalid={Boolean(errors.title?.message)}
+                                  className="m-2 w-full md:max-w-[48%]"
+                                  isRequired
+                                  errorMessage={errors.title?.message as string}
+                                />
+                              )}
+                            />
+                            <Controller
+                              name="time"
+                              control={control}
+                              rules={{
+                                required: "Testning vaqtini kiriting!",
+                              }}
+                              render={({ field }) => (
+                                <Input
+                                  {...field}
+                                  label={"Testning vaqtini kiriting!"}
+                                  size="sm"
+                                  isInvalid={Boolean(errors.time?.message)}
+                                  className="m-2 w-full md:max-w-[48%]"
+                                  isRequired
+                                  errorMessage={errors.time?.message as string}
+                                />
+                              )}
+                            />
+                          </div>
+                          <Controller
+                            name="description"
+                            control={control}
+                            rules={{
+                              required: "Testning tavsifini kiriting!",
+                            }}
+                            render={({ field }) => (
+                              <Input
+                                {...field}
+                                label={"Testning tavsifini kiriting!"}
+                                size="sm"
+                                isInvalid={Boolean(errors.description?.message)}
+                                className="m-2 w-full"
+                                isRequired
+                                errorMessage={
+                                  errors.description?.message as string
+                                }
+                              />
+                            )}
+                          />
+                          {questions.map((q, qIndex) => (
+                            <div key={qIndex} className="mb-4">
+                              <div className="flex items-center justify-between">
+                                <Controller
+                                  name={`questions.${qIndex}.questionText`}
+                                  control={control}
+                                  rules={{
+                                    required: "Savolni kiriting!",
+                                  }}
+                                  render={({ field }) => (
+                                    <Input
+                                      {...field}
+                                      label={`Savol ${qIndex + 1}`}
+                                      size="sm"
+                                      isInvalid={Boolean(
+                                        errors.questions?.[qIndex]?.questionText
+                                          ?.message,
+                                      )}
+                                      className="m-2 w-full"
+                                      isRequired
+                                      errorMessage={
+                                        errors.questions?.[qIndex]?.questionText
+                                          ?.message as string
+                                      }
+                                    />
+                                  )}
+                                />
+                                <Button
+                                  color="danger"
+                                  onClick={() => removeQuestion(qIndex)}
+                                  className="ml-2"
+                                >
+                                  Savolni O'chirish
+                                </Button>
+                              </div>
+                              {q.options.map((_, aIndex) => (
+                                <div
+                                  key={aIndex}
+                                  className="flex gap-2 items-center"
+                                >
+                                  <Controller
+                                    name={`questions.${qIndex}.options.${aIndex}.variant`}
+                                    control={control}
+                                    rules={{
+                                      required: "Variant harfini kiriting!",
+                                    }}
+                                    render={({ field }) => (
+                                      <Input
+                                        {...field}
+                                        label={`Variant`}
+                                        size="sm"
+                                        className="m-2 w-[100px]"
+                                        isInvalid={Boolean(
+                                          errors.questions?.[qIndex]?.options?.[
+                                            aIndex
+                                          ]?.variant?.message,
+                                        )}
+                                        isRequired
+                                        errorMessage={
+                                          errors.questions?.[qIndex]?.options?.[
+                                            aIndex
+                                          ]?.variant?.message as string
+                                        }
+                                      />
+                                    )}
+                                  />
+                                  <Controller
+                                    name={`questions.${qIndex}.options.${aIndex}.javob`}
+                                    control={control}
+                                    rules={{
+                                      required: "Javobni kiriting!",
+                                    }}
+                                    render={({ field }) => (
+                                      <Input
+                                        {...field}
+                                        label={`Javob ${aIndex + 1}`}
+                                        size="sm"
+                                        className="m-2 flex-1"
+                                        isInvalid={Boolean(
+                                          errors.questions?.[qIndex]?.options?.[
+                                            aIndex
+                                          ]?.javob?.message,
+                                        )}
+                                        isRequired
+                                        errorMessage={
+                                          errors.questions?.[qIndex]?.options?.[
+                                            aIndex
+                                          ]?.javob?.message as string
+                                        }
+                                      />
+                                    )}
+                                  />
+                                  <Button
+                                    color="danger"
+                                    onClick={() => removeOption(qIndex, aIndex)}
+                                    className="ml-2"
+                                  >
+                                    Javobni O'chirish
+                                  </Button>
+                                </div>
+                              ))}
+                              <Button
+                                onClick={() => {
+                                  const newQuestions = [...questions];
+                                  newQuestions[qIndex].options.push({
+                                    variant: "",
+                                    javob: "",
+                                  });
+                                  setQuestions(newQuestions);
+                                }}
+                              >
+                                Javob qo'shish
+                              </Button>
+                            </div>
+                          ))}
+                          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <Button
+                              onClick={() => {
+                                const newQuestions = [...questions];
+                                newQuestions.push({
+                                  questionText: "",
+                                  options: [{ variant: "", javob: "" }],
+                                });
+                                setQuestions(newQuestions);
+                              }}
+                              className="mt-6 w-full md:w-[20%]"
+                              color="primary"
+                            >
+                              Savol qo'shish
+                            </Button>
+                            <Button
+                              isLoading={loadingEdit}
+                              type="submit"
+                              className="mt-6 w-full"
+                              color="success"
+                            >
+                              Tahrirlashni Saqlash
+                            </Button>
+                          </div>
+                        </div>
+                      </form>
+                    </>
+                  )}
+                </ModalContent>
+              </Modal>
             </div>
           )}
 
@@ -718,7 +985,7 @@ export const SuperAdminPage = () => {
                     ))}
                   </div>
 
-                  {selectedStudent && (
+                  {selectedStudent && testDetails && (
                     <div className="fixed inset-0 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                       <div className="bg-white h-auto rounded-lg max-w-[90%] md:max-w-2xl w-full p-6 overflow-y-auto max-h-[80vh]">
                         <div className="flex justify-between items-start mb-4">
@@ -751,7 +1018,7 @@ export const SuperAdminPage = () => {
                           <button
                             onClick={() => {
                               setSelectedStudent(null);
-                              setTestName(null);
+                              setTestDetails(null);
                             }}
                             className="text-gray-500 hover:text-gray-700"
                           >
@@ -773,7 +1040,7 @@ export const SuperAdminPage = () => {
 
                         <div className="mt-6">
                           <h4 className="font-semibold mb-2">
-                            Test nomi: {testName}
+                            Test nomi: {testDetails.title}
                           </h4>
                           <div className="space-y-2 min-h-[500px] border p-2 rounded overflow-y-hidden">
                             {selectedStudent.answers.map((answer, index) => (
